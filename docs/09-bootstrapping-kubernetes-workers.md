@@ -7,7 +7,8 @@ In this lab you will bootstrap three Kubernetes worker nodes. The following comp
 The commands in this lab must be run on each worker instance: `worker-0`, `worker-1`, and `worker-2`. Login to each worker instance using the `gcloud` command. Example:
 
 ```
-gcloud compute ssh worker-0
+ssh yc-user@$(yc compute instance get worker-0 \
+  --format json | jq -r .network_interfaces[0].primary_v4_address.one_to_one_nat.address)
 ```
 
 ### Running commands in parallel with tmux
@@ -91,7 +92,7 @@ Retrieve the Pod CIDR range for the current compute instance:
 
 ```
 POD_CIDR=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/attributes/pod-cidr)
+  http://169.254.169.254/computeMetadata/v1/instance/attributes/pod-cidr)
 ```
 
 Create the `bridge` network configuration file:
@@ -297,8 +298,9 @@ EOF
 List the registered Kubernetes nodes:
 
 ```
-gcloud compute ssh controller-0 \
-  --command "kubectl get nodes --kubeconfig admin.kubeconfig"
+ssh yc-user@$(yc compute instance get controller-0 \
+  --format json | jq -r .network_interfaces[0].primary_v4_address.one_to_one_nat.address) \
+  "kubectl get nodes --kubeconfig admin.kubeconfig"
 ```
 
 > output

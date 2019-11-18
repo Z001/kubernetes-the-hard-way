@@ -7,7 +7,8 @@ Kubernetes components are stateless and store cluster state in [etcd](https://gi
 The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `gcloud` command. Example:
 
 ```
-gcloud compute ssh controller-0
+ssh yc-user@$(yc compute instance get controller-0 \
+  --format json | jq -r .network_interfaces[0].primary_v4_address.one_to_one_nat.address)
 ```
 
 ### Running commands in parallel with tmux
@@ -47,7 +48,7 @@ The instance internal IP address will be used to serve client requests and commu
 
 ```
 INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
+  http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
 ```
 
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name to match the hostname of the current compute instance:

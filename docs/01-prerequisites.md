@@ -1,54 +1,51 @@
 # Prerequisites
 
-## Google Cloud Platform
+## Yandex.Cloud
 
-This tutorial leverages the [Google Cloud Platform](https://cloud.google.com/) to streamline provisioning of the compute infrastructure required to bootstrap a Kubernetes cluster from the ground up. [Sign up](https://cloud.google.com/free/) for $300 in free credits.
+This tutorial leverages the [Yandex.Cloud](https://cloud.yandex.com/) to streamline provisioning of the compute infrastructure required to bootstrap a Kubernetes cluster from the ground up. [Sign up](https://console.cloud.yandex.com/) for [free 60 days trial](https://cloud.yandex.com/docs/free-trial/).
 
-[Estimated cost](https://cloud.google.com/products/calculator/#id=55663256-c384-449c-9306-e39893e23afb) to run this tutorial: $0.23 per hour ($5.46 per day).
+[Estimated cost](https://cloud.yandex.com/prices) to run this tutorial: 18.82₽ per hour (451.68₽ per day).
+Detailed calculation for daily usage:
 
-> The compute resources required for this tutorial exceed the Google Cloud Platform free tier.
+| ﻿Service               | Product                              | Unit                | Cost     |
+|-----------------------|--------------------------------------|---------------------|----------|
+| VPC                   | Public IP address                    | 144.00 fip*hour     | 21.95 ₽  |
+| VPC                   | Public IP address of a load balancer | 24.00 fip*hour      | 3.66 ₽   |
+| Compute Cloud         | Intel Cascade Lake. 100% vCPU        | 288.00 core*hour    | 215.31 ₽ |
+| Compute Cloud         | Standard storage (HDD)               | 28800.06 gbyte*hour | 83.39 ₽  |
+| Compute Cloud         | Intel Cascade Lake. RAM              | 576.00 gbyte*hour   | 114.05 ₽ |
+| Network Load Balancer | Network load balancer                | 24.00 hour          | 13.33 ₽  |
 
-## Google Cloud Platform SDK
+-> The compute resources required for this tutorial exceed the [Yandex.Cloud free trial](https://cloud.yandex.com/docs/free-trial/concepts/limits).
 
-### Install the Google Cloud SDK
-
-Follow the Google Cloud SDK [documentation](https://cloud.google.com/sdk/) to install and configure the `gcloud` command line utility.
-
-Verify the Google Cloud SDK version is 262.0.0 or higher:
-
+## Quotas
 ```
-gcloud version
-```
-
-### Set a Default Compute Region and Zone
-
-This tutorial assumes a default compute region and zone have been configured.
-
-If you are using the `gcloud` command-line tool for the first time `init` is the easiest way to do this:
-
-```
-gcloud init
+network-hdd-total-disk-size >= 1200GB
+cores >= 12
+external-address-count >=7
 ```
 
-Then be sure to authorize gcloud to access the Cloud Platform with your Google user credentials:
+## Yandex.Cloud CLI
+
+### Install the Yandex.Cloud CLI
+
+Follow the Yandex.Cloud CLI [documentation](https://cloud.yandex.com/docs/cli/) to install and configure the `yc` command line utility.
+
+Verify the Yandex.Cloud CLI version is 0.43.0 or higher:
 
 ```
-gcloud auth login
+yc version
 ```
 
-Next set a default compute region and compute zone:
+### Set a Default Availability Zone
+
+This tutorial assumes a default compute availability zone have been configured.
+
+If you are using the `yc` command-line tool for the first time `init` is the easiest way to do this:
 
 ```
-gcloud config set compute/region us-west1
+yc init
 ```
-
-Set a default compute zone:
-
-```
-gcloud config set compute/zone us-west1-c
-```
-
-> Use the `gcloud compute zones list` command to view additional regions and zones.
 
 ## Running Commands in Parallel with tmux
 

@@ -1,7 +1,62 @@
 # Installing the Client Tools
 
-In this lab you will install the command line utilities required to complete this tutorial: [cfssl](https://github.com/cloudflare/cfssl), [cfssljson](https://github.com/cloudflare/cfssl), and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl).
+In this lab you will install the command line utilities required to complete this tutorial: [jq](https://github.com/stedolan/jq), [cfssl](https://github.com/cloudflare/cfssl), [cfssljson](https://github.com/cloudflare/cfssl), and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl).
 
+
+## Install jq
+
+`jq` command line utility will be used for various manipulation with JSON output of `yc` command.
+
+Download and install `jq`:
+
+### OS X
+
+```
+curl -o jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64
+```
+
+```
+chmod +x jq
+```
+
+```
+sudo mv jq /usr/local/bin/
+```
+
+Some OS X users may experience problems using the pre-built binaries in which case [Homebrew](https://brew.sh) might be a better option:
+
+```
+brew install jq
+```
+
+### Linux
+
+```
+wget -q --show-progress --https-only --timestamping \
+  https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+```
+
+```
+chmod +x jq-linux64
+```
+
+```
+sudo mv jq-linux64 /usr/local/bin/
+```
+
+### Verification
+
+Verify `jq` version 1.6 or higher is installed:
+
+```
+jq --version
+```
+
+> output
+
+```
+jq-1.6
+```
 
 ## Install CFSSL
 

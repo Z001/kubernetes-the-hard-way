@@ -7,7 +7,8 @@ In this lab you will bootstrap the Kubernetes control plane across three compute
 The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `gcloud` command. Example:
 
 ```
-gcloud compute ssh controller-0
+ssh yc-user@$(yc compute instance get controller-0 \
+  --format json | jq -r .network_interfaces[0].primary_v4_address.one_to_one_nat.address)
 ```
 
 ### Running commands in parallel with tmux
@@ -59,7 +60,7 @@ The instance internal IP address will be used to advertise the API Server to mem
 
 ```
 INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
+  http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
 ```
 
 Create the `kube-apiserver.service` systemd unit file:
@@ -201,7 +202,7 @@ EOF
 
 ### Enable HTTP Health Checks
 
-A [Google Network Load Balancer](https://cloud.google.com/compute/docs/load-balancing/network) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The network load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
+A [Yandex Load Balancer](https://cloud.yandex.com/docs/load-balancer/) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. The load balancer only supports HTTP health checks which means the HTTPS endpoint exposed by the API server cannot be used. As a workaround the nginx webserver can be used to proxy HTTP health checks. In this section nginx will be installed and configured to accept HTTP health checks on port `80` and proxy the connections to the API server on `https://127.0.0.1:6443/healthz`.
 
 > The `/healthz` API server endpoint does not require authentication by default.
 
@@ -232,6 +233,7 @@ EOF
     /etc/nginx/sites-available/kubernetes.default.svc.cluster.local
 
   sudo ln -s /etc/nginx/sites-available/kubernetes.default.svc.cluster.local /etc/nginx/sites-enabled/
+  sudo rm /etc/nginx/sites-enabled/default
 }
 ```
 
@@ -287,7 +289,8 @@ In this section you will configure RBAC permissions to allow the Kubernetes API 
 The commands in this section will effect the entire cluster and only need to be run once from one of the controller nodes.
 
 ```
-gcloud compute ssh controller-0
+ssh yc-user@$(yc compute instance get controller-0 \
+  --format json | jq -r .network_interfaces[0].primary_v4_address.one_to_one_nat.address)
 ```
 
 Create the `system:kube-apiserver-to-kubelet` [ClusterRole](https://kubernetes.io/docs/admin/authorization/rbac/#role-and-clusterrole) with permissions to access the Kubelet API and perform most common tasks associated with managing pods:
@@ -340,7 +343,7 @@ EOF
 
 ## The Kubernetes Frontend Load Balancer
 
-In this section you will provision an external load balancer to front the Kubernetes API Servers. The `kubernetes-the-hard-way` static IP address will be attached to the resulting load balancer.
+In this section you will provision an external load balancer to front the Kubernetes API Servers.
 
 > The compute instances created in this tutorial will not have permission to complete this section. **Run the following commands from the same machine used to create the compute instances**.
 
@@ -351,31 +354,18 @@ Create the external load balancer network resources:
 
 ```
 {
-  KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-    --region $(gcloud config get-value compute/region) \
-    --format 'value(address)')
+  yc load-balancer target-group create --name kubernetes-target-group
 
-  gcloud compute http-health-checks create kubernetes \
-    --description "Kubernetes Health Check" \
-    --host "kubernetes.default.svc.cluster.local" \
-    --request-path "/healthz"
+  yc load-balancer target-group add-targets kubernetes-target-group \
+    --target subnet-name=kubernetes,address=10.240.0.10 \
+    --target subnet-name=kubernetes,address=10.240.0.11 \
+    --target subnet-name=kubernetes,address=10.240.0.12
 
-  gcloud compute firewall-rules create kubernetes-the-hard-way-allow-health-check \
-    --network kubernetes-the-hard-way \
-    --source-ranges 209.85.152.0/22,209.85.204.0/22,35.191.0.0/16 \
-    --allow tcp
+  TARGET_GROUP_ID=$(yc load-balancer target-group get kubernetes-target-group \
+    --format json | jq -r .id)
 
-  gcloud compute target-pools create kubernetes-target-pool \
-    --http-health-check kubernetes
-
-  gcloud compute target-pools add-instances kubernetes-target-pool \
-   --instances controller-0,controller-1,controller-2
-
-  gcloud compute forwarding-rules create kubernetes-forwarding-rule \
-    --address ${KUBERNETES_PUBLIC_ADDRESS} \
-    --ports 6443 \
-    --region $(gcloud config get-value compute/region) \
-    --target-pool kubernetes-target-pool
+  yc load-balancer network-load-balancer attach-target-group kubernetes-the-hard-way \
+    --target-group target-group-id=${TARGET_GROUP_ID},healthcheck-name=kubernetes,healthcheck-http-port=80,healthcheck-http-path=/healthz
 }
 ```
 
@@ -386,9 +376,8 @@ Create the external load balancer network resources:
 Retrieve the `kubernetes-the-hard-way` static IP address:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(yc load-balancer network-load-balancer describe kubernetes-the-hard-way \
+  --format json | jq -r .listeners[0].address)
 ```
 
 Make a HTTP request for the Kubernetes version info:
